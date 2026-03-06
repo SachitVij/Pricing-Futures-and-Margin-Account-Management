@@ -1,0 +1,35 @@
+name: Sync branches with main
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        branch: [forward-pricing, margain-account]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Merge main into ${{ matrix.branch }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout ${{ matrix.branch }}
+          if ! git merge origin/main --no-edit; then
+            echo "::error::Merge conflict detected in branch ${{ matrix.branch }}. Please resolve conflicts manually."
+            git merge --abort
+            exit 1
+          fi
+          git push origin ${{ matrix.branch }}
